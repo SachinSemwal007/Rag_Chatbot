@@ -1,0 +1,9 @@
+Artificial Intelligence is transforming industries worldwide.
+RAG stands for Retrieval Augmented Generation. It combines 
+retrieval systems with language models to give accurate answers.
+LangChain is a framework that simplifies building LLM applications.
+ChromaDB is an open source vector database used to store embeddings.
+Groq is a fast AI inference platform that provides free API access.
+Temperature controls randomness in LLM outputs.
+Fine-tuning trains a model on custom data for domain-specific tasks.
+Prompt engineering is the art of crafting inputs to get better outputs.
