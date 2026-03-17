@@ -8,10 +8,23 @@ from langchain_community.document_loaders import TextLoader, PyPDFLoader
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
+import tempfile
+import streamlit as st
 
 # Load environment variables
 load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+st.set_page_config(page_title="PDF Q&A Chatbot", page_icon="🤖", layout="centered")
+st.title("🤖 RAG PDF Chatbot")
+st.caption("Upload a PDF or text file and ask questions about it.")
+ 
+if "rag_chain" not in st.session_state:
+    st.session_state.rag_chain = None
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+if "file_processed" not in st.session_state:
+    st.session_state.file_processed = False
 
 def load_document(file_path):
     """Load a text or PDF document"""
@@ -85,32 +98,52 @@ Answer:
     print("✅ RAG chain ready!")
     return rag_chain
 
-def chat(rag_chain):
-    """Interactive chat loop"""
-    print("\n" + "="*50)
-    print("🤖 RAG Chatbot Ready! Ask questions about your document.")
-    print("Type 'exit' to quit.")
-    print("="*50 + "\n")
-
-    while True:
-        question = input("You: ").strip()
-        if question.lower() == "exit":
-            print("Goodbye! 👋")
-            break
-        if not question:
-            continue
-
-        answer = rag_chain.invoke(question)
-        print(f"\n🤖 Bot: {answer}\n")
-
-def main():
-    file_path = "document.txt"  # or "document.pdf"
-
-    print("🚀 Starting RAG Chatbot...\n")
-    documents = load_document(file_path)
-    vector_store = create_vector_store(documents)
-    rag_chain = create_rag_chain(vector_store)
-    chat(rag_chain)
-
-if __name__ == "__main__":
-    main()
+# --- Sidebar: File Upload ---
+with st.sidebar:
+    st.header("📄 Upload Document")
+    uploaded_file = st.file_uploader("Choose a PDF or TXT file", type=["pdf", "txt"])
+ 
+    if uploaded_file and not st.session_state.file_processed:
+        with st.spinner("Processing document..."):
+            suffix = ".pdf" if uploaded_file.name.endswith(".pdf") else ".txt"
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp.write(uploaded_file.read())
+                tmp_path = tmp.name
+ 
+            documents = load_document(tmp_path)
+            vector_store = create_vector_store(documents)
+            st.session_state.rag_chain = create_rag_chain(vector_store)
+            st.session_state.file_processed = True
+            st.session_state.chat_history = []
+            os.unlink(tmp_path)
+ 
+        st.success(f"✅ Loaded: {uploaded_file.name}")
+ 
+    if st.session_state.file_processed:
+        if st.button("🗑️ Clear & Upload New File"):
+            st.session_state.rag_chain = None
+            st.session_state.chat_history = []
+            st.session_state.file_processed = False
+            st.rerun()
+ 
+# --- Chat Interface ---
+if not st.session_state.file_processed:
+    st.info("👈 Upload a PDF or TXT file from the sidebar to get started.")
+else:
+    for msg in st.session_state.chat_history:
+        with st.chat_message(msg["role"]):
+            st.write(msg["content"])
+ 
+    user_input = st.chat_input("Ask something about your document...")
+    if user_input:
+        st.session_state.chat_history.append({"role": "user", "content": user_input})
+        with st.chat_message("user"):
+            st.write(user_input)
+ 
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                response = st.session_state.rag_chain.invoke(user_input)
+            st.write(response)
+ 
+        st.session_state.chat_history.append({"role": "assistant", "content": response})
+ 
