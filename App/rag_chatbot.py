@@ -13,11 +13,17 @@ import streamlit as st
 
 # Load environment variables
 load_dotenv()
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_API_KEY = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
 
 st.set_page_config(page_title="PDF Q&A Chatbot", page_icon="🤖", layout="centered")
 st.title("🤖 RAG PDF Chatbot")
 st.caption("Upload a PDF or text file and ask questions about it.")
+
+# Check if API Key exists before proceeding
+if not GROQ_API_KEY:
+    st.error("Missing Groq API Key! Please add 'GROQ_API_KEY' to your Streamlit Secrets.")
+    st.info("How to fix: Go to App Settings > Secrets and add: GROQ_API_KEY = 'your_key_here'")
+    st.stop()
  
 if "rag_chain" not in st.session_state:
     st.session_state.rag_chain = None
