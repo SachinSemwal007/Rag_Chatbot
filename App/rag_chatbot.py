@@ -19,6 +19,7 @@ st.set_page_config(page_title="PDF Q&A Chatbot", page_icon="🤖", layout="cente
 st.title("🤖 RAG PDF Chatbot")
 st.caption("Upload a PDF or text file and ask questions about it.")
 
+
 # Check if API Key exists before proceeding
 if not GROQ_API_KEY:
     st.error("Missing Groq API Key! Please add 'GROQ_API_KEY' to your Streamlit Secrets.")
